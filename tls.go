@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gmsm/sm2"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 // Server returns a new TLS server side connection

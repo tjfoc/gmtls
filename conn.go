@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gmsm/sm2"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 // A Conn represents a secured connection.

@@ -25,9 +25,9 @@ import (
 	"crypto/sha256"
 	"hash"
 
-	"golang.org/x/crypto/chacha20poly1305"
+	"github.com/tjfoc/gmsm/sm2"
 
-	"github.com/gmsm/sm2"
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 // a keyAgreement implements the client and server side of a TLS key agreement
