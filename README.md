@@ -1,7 +1,8 @@
 # gmtls
-[![Build Status](https://www.travis-ci.org/tjfoc/gmtls.svg?branch=master)](https://www.travis-ci.org/tjfoc/gmtls)
-GM TLS/SSL Based on Golang (基于国密算法的TLS/SSL代码库)
 
+[![Build Status](https://www.travis-ci.org/tjfoc/gmtls.svg?branch=master)](https://www.travis-ci.org/tjfoc/gmtls)
+
+GM TLS/SSL Based on Golang (基于国密算法的TLS/SSL代码库)
 
 版权所有 苏州同济区块链研究院有限公司(http://www.tj-fintech.com)
 
