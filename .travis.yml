@@ -1,1 +1,33 @@
 
+sudo: false
+language: 
+  - go
+go:
+  - 1.8.3
+
+  
+install:
+  - go get -v github.com/golang/lint/golint
+  - go build -v ./
+  - go build -v ./gmcredential
+  - go build -v ./gmcredential/echo
+  
+
+script:
+  - go vet ./gmcredentials
+  - go test ./gmcredentials
+  
+after_failure:   
+
+ - |
+  echo "Error!"
+notifications:
+  email:
+    recipients:
+      - zhiqiang@tj-fintech.com
+      - yanwenze@tj-fintech.com
+      - maoxiuze@tj-fintech.com
+      - yewei@tj-fintech.com
+      
+    on_success: never # default: change
+    on_failure: never # default: always
