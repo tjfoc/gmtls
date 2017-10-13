@@ -1,5 +1,5 @@
 # gmtls
-[![Build Status](https://www.travis-ci.org/tjfoc/gmtls.svg?branch=develop)](https://www.travis-ci.org/tjfoc/gmtls)
+[![Build Status](https://www.travis-ci.org/tjfoc/gmtls.svg?branch=master)](https://www.travis-ci.org/tjfoc/gmtls)
 GM TLS/SSL Based on Golang (基于国密算法的TLS/SSL代码库)
 
 
