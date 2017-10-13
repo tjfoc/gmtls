@@ -14,6 +14,7 @@ install:
   - go get -v google.golang.org/grpc/credentials
   - go get -v github.com/golang/protobuf/proto
   - go get -v golang.org/x/text/secure/bidirule
+  - go get -v google.golang.org/genproto/googleapis/rpc/status
   - pwd
   - go build
   - go build -v ./gmcredentials
