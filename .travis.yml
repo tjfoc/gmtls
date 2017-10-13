@@ -12,6 +12,7 @@ install:
   - go get -v golang.org/x/crypto/chacha20poly1305
   - go get -v golang.org/x/net/context
   - go get -v google.golang.org/grpc/credentials
+  - go get -v github.com/golang/protobuf/proto
   - pwd
   - go build
   - go build -v ./gmcredentials
