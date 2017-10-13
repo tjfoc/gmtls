@@ -13,6 +13,7 @@ install:
   - go get -v golang.org/x/net/context
   - go get -v google.golang.org/grpc/credentials
   - go get -v github.com/golang/protobuf/proto
+  - go get -v golang.org/x/text/secure/bidirule
   - pwd
   - go build
   - go build -v ./gmcredentials
