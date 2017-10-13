@@ -8,6 +8,7 @@ go:
   
 install:
   - go get -v github.com/golang/lint/golint
+  - go get -v github.com/tjfoc/gmsm/sm2
   - go build
   - go build -v ./gmcredential
   - go build -v ./gmcredential/echo
