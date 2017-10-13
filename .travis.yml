@@ -8,7 +8,7 @@ go:
   
 install:
   - go get -v github.com/golang/lint/golint
-  - go build -v ./
+  - go build
   - go build -v ./gmcredential
   - go build -v ./gmcredential/echo
   
