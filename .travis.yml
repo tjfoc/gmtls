@@ -11,6 +11,7 @@ install:
   - go get -v github.com/tjfoc/gmsm/sm2
   - go get -v golang.org/x/crypto/chacha20poly1305
   - go get -v golang.org/x/net/context
+  - go get -v google.golang.org/grpc/credentials
   - pwd
   - go build
   - go build -v ./gmcredentials
