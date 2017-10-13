@@ -1,207 +1,104 @@
-/*
- *
- * Copyright 2016 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
 package gmcredentials
 
 import (
+	"fmt"
+	"io/ioutil"
+	"log"
 	"net"
 	"testing"
 
-	"github.com/gmtls"
-
+	"github.com/tjfoc/gmsm/sm2"
+	"github.com/tjfoc/gmtls"
+	"github.com/tjfoc/gmtls/gmcredentials/echo"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/testdata"
+	"google.golang.org/grpc"
 )
 
-func TestTLSOverrideServerName(t *testing.T) {
-	expectedServerName := "server.name"
-	c := NewTLS(nil)
-	c.OverrideServerName(expectedServerName)
-	if c.Info().ServerName != expectedServerName {
-		t.Fatalf("c.Info().ServerName = %v, want %v", c.Info().ServerName, expectedServerName)
-	}
+const (
+	port    = ":50051"
+	address = "localhost:50051"
+)
+
+var end chan bool
+
+type server struct{}
+
+func (s *server) Echo(ctx context.Context, req *echo.EchoRequest) (*echo.EchoResponse, error) {
+	return &echo.EchoResponse{Result: req.Req}, nil
 }
 
-func TestTLSClone(t *testing.T) {
-	expectedServerName := "server.name"
-	c := NewTLS(nil)
-	c.OverrideServerName(expectedServerName)
-	cc := c.Clone()
-	if cc.Info().ServerName != expectedServerName {
-		t.Fatalf("cc.Info().ServerName = %v, want %v", cc.Info().ServerName, expectedServerName)
-	}
-	cc.OverrideServerName("")
-	if c.Info().ServerName != expectedServerName {
-		t.Fatalf("Change in clone should not affect the original, c.Info().ServerName = %v, want %v", c.Info().ServerName, expectedServerName)
-	}
+const ca = "testdata/ca.pem"
+const cakey = "testdata/cakey.pem"
 
-}
+const admin = "testdata/admin.pem"
+const adminkey = "testdata/adminkey.pem"
 
-type serverHandshake func(net.Conn) (AuthInfo, error)
-
-func TestClientHandshakeReturnsAuthInfo(t *testing.T) {
-	done := make(chan AuthInfo, 1)
-	lis := launchServer(t, tlsServerHandshake, done)
-	defer lis.Close()
-	lisAddr := lis.Addr().String()
-	clientAuthInfo := clientHandle(t, gRPCClientHandshake, lisAddr)
-	// wait until server sends serverAuthInfo or fails.
-	serverAuthInfo, ok := <-done
-	if !ok {
-		t.Fatalf("Error at server-side")
-	}
-	if !compare(clientAuthInfo, serverAuthInfo) {
-		t.Fatalf("c.ClientHandshake(_, %v, _) = %v, want %v.", lisAddr, clientAuthInfo, serverAuthInfo)
-	}
-}
-
-func TestServerHandshakeReturnsAuthInfo(t *testing.T) {
-	done := make(chan AuthInfo, 1)
-	lis := launchServer(t, gRPCServerHandshake, done)
-	defer lis.Close()
-	clientAuthInfo := clientHandle(t, tlsClientHandshake, lis.Addr().String())
-	// wait until server sends serverAuthInfo or fails.
-	serverAuthInfo, ok := <-done
-	if !ok {
-		t.Fatalf("Error at server-side")
-	}
-	if !compare(clientAuthInfo, serverAuthInfo) {
-		t.Fatalf("ServerHandshake(_) = %v, want %v.", serverAuthInfo, clientAuthInfo)
-	}
-}
-
-func TestServerAndClientHandshake(t *testing.T) {
-	done := make(chan AuthInfo, 1)
-	lis := launchServer(t, gRPCServerHandshake, done)
-	defer lis.Close()
-	clientAuthInfo := clientHandle(t, gRPCClientHandshake, lis.Addr().String())
-	// wait until server sends serverAuthInfo or fails.
-	serverAuthInfo, ok := <-done
-	if !ok {
-		t.Fatalf("Error at server-side")
-	}
-	if !compare(clientAuthInfo, serverAuthInfo) {
-		t.Fatalf("AuthInfo returned by server: %v and client: %v aren't same", serverAuthInfo, clientAuthInfo)
-	}
-}
-
-func compare(a1, a2 AuthInfo) bool {
-	if a1.AuthType() != a2.AuthType() {
-		return false
-	}
-	switch a1.AuthType() {
-	case "tls":
-		state1 := a1.(TLSInfo).State
-		state2 := a2.(TLSInfo).State
-		if state1.Version == state2.Version &&
-			state1.HandshakeComplete == state2.HandshakeComplete &&
-			state1.CipherSuite == state2.CipherSuite &&
-			state1.NegotiatedProtocol == state2.NegotiatedProtocol {
-			return true
-		}
-		return false
-	default:
-		return false
-	}
-}
-
-func launchServer(t *testing.T, hs serverHandshake, done chan AuthInfo) net.Listener {
-	lis, err := net.Listen("tcp", "localhost:0")
+func serverRun() {
+	cert, err := gmtls.LoadX509KeyPair(ca, cakey)
 	if err != nil {
-		t.Fatalf("Failed to listen: %v", err)
+		log.Fatal(err)
 	}
-	go serverHandle(t, hs, done, lis)
-	return lis
+	certPool := sm2.NewCertPool()
+	cacert, err := ioutil.ReadFile(ca)
+	if err != nil {
+		log.Fatal(err)
+	}
+	certPool.AppendCertsFromPEM(cacert)
+
+	lis, err := net.Listen("tcp", port)
+	if err != nil {
+		log.Fatalf("fail to listen: %v", err)
+	}
+	creds := NewTLS(&gmtls.Config{
+		ClientAuth:   gmtls.RequireAndVerifyClientCert,
+		Certificates: []gmtls.Certificate{cert},
+		ClientCAs:    certPool,
+	})
+	s := grpc.NewServer(grpc.Creds(creds))
+	echo.RegisterEchoServer(s, &server{})
+	err = s.Serve(lis)
+	if err != nil {
+		log.Fatalf("Serve: %v", err)
+	}
 }
 
-// Is run in a seperate goroutine.
-func serverHandle(t *testing.T, hs serverHandshake, done chan AuthInfo, lis net.Listener) {
-	serverRawConn, err := lis.Accept()
+func clientRun() {
+	cert, err := gmtls.LoadX509KeyPair(admin, adminkey)
 	if err != nil {
-		t.Errorf("Server failed to accept connection: %v", err)
-		close(done)
-		return
+		log.Fatal(err)
 	}
-	serverAuthInfo, err := hs(serverRawConn)
+	certPool := sm2.NewCertPool()
+	cacert, err := ioutil.ReadFile(ca)
 	if err != nil {
-		t.Errorf("Server failed while handshake. Error: %v", err)
-		serverRawConn.Close()
-		close(done)
-		return
+		log.Fatal(err)
 	}
-	done <- serverAuthInfo
-}
-
-func clientHandle(t *testing.T, hs func(net.Conn, string) (AuthInfo, error), lisAddr string) AuthInfo {
-	conn, err := net.Dial("tcp", lisAddr)
+	certPool.AppendCertsFromPEM(cacert)
+	creds := NewTLS(&gmtls.Config{
+		ServerName:   "ca.example.com",
+		Certificates: []gmtls.Certificate{cert},
+		RootCAs:      certPool,
+	})
+	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(creds))
 	if err != nil {
-		t.Fatalf("Client failed to connect to %s. Error: %v", lisAddr, err)
+		log.Fatalf("cannot to connect: %v", err)
 	}
 	defer conn.Close()
-	clientAuthInfo, err := hs(conn, lisAddr)
-	if err != nil {
-		t.Fatalf("Error on client while handshake. Error: %v", err)
-	}
-	return clientAuthInfo
+	c := echo.NewEchoClient(conn)
+	echoTest(c)
+	end <- true
 }
 
-// Server handshake implementation in gRPC.
-func gRPCServerHandshake(conn net.Conn) (AuthInfo, error) {
-	serverTLS, err := NewServerTLSFromFile(testdata.Path("server1.pem"), testdata.Path("server1.key"))
+func echoTest(c echo.EchoClient) {
+	r, err := c.Echo(context.Background(), &echo.EchoRequest{Req: "hello"})
 	if err != nil {
-		return nil, err
+		log.Fatalf("failed to echo: %v", err)
 	}
-	_, serverAuthInfo, err := serverTLS.ServerHandshake(conn)
-	if err != nil {
-		return nil, err
-	}
-	return serverAuthInfo, nil
+	fmt.Printf("%s\n", r.Result)
 }
 
-// Client handshake implementation in gRPC.
-func gRPCClientHandshake(conn net.Conn, lisAddr string) (AuthInfo, error) {
-	clientTLS := NewTLS(&gmtls.Config{InsecureSkipVerify: true})
-	_, authInfo, err := clientTLS.ClientHandshake(context.Background(), lisAddr, conn)
-	if err != nil {
-		return nil, err
-	}
-	return authInfo, nil
-}
-
-func tlsServerHandshake(conn net.Conn) (AuthInfo, error) {
-	cert, err := gmtls.LoadX509KeyPair(testdata.Path("server1.pem"), testdata.Path("server1.key"))
-	if err != nil {
-		return nil, err
-	}
-	serverTLSConfig := &gmtls.Config{Certificates: []gmtls.Certificate{cert}}
-	serverConn := gmtls.Server(conn, serverTLSConfig)
-	err = serverConn.Handshake()
-	if err != nil {
-		return nil, err
-	}
-	return TLSInfo{State: serverConn.ConnectionState()}, nil
-}
-
-func tlsClientHandshake(conn net.Conn, _ string) (AuthInfo, error) {
-	clientTLSConfig := &gmtls.Config{InsecureSkipVerify: true}
-	clientConn := gmtls.Client(conn, clientTLSConfig)
-	if err := clientConn.Handshake(); err != nil {
-		return nil, err
-	}
-	return TLSInfo{State: clientConn.ConnectionState()}, nil
+func Test(t *testing.T) {
+	end = make(chan bool, 64)
+	go serverRun()
+	go clientRun()
+	<-end
 }
