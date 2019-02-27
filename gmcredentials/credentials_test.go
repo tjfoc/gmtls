@@ -27,11 +27,11 @@ func (s *server) Echo(ctx context.Context, req *echo.EchoRequest) (*echo.EchoRes
 	return &echo.EchoResponse{Result: req.Req}, nil
 }
 
-const ca = "testdata/ca.pem"
-const cakey = "testdata/cakey.pem"
+const ca = "testdata/caV2.pem"
+const cakey = "testdata/caKeyV2.pem"
 
-const admin = "testdata/admin.pem"
-const adminkey = "testdata/adminkey.pem"
+const admin = "testdata/adminV2.pem"
+const adminkey = "testdata/adminKeyV2.pem"
 
 func serverRun() {
 	cert, err := gmtls.LoadX509KeyPair(ca, cakey)

@@ -110,7 +110,8 @@ func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*
 	timeout := dialer.Timeout
 
 	if !dialer.Deadline.IsZero() {
-		deadlineTimeout := time.Until(dialer.Deadline)
+		//		deadlineTimeout := time.Until(dialer.Deadline)
+		deadlineTimeout := dialer.Deadline.Sub(time.Now()) // support go before 1.8
 		if timeout == 0 || deadlineTimeout < timeout {
 			timeout = deadlineTimeout
 		}
