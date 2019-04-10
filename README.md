@@ -4,7 +4,7 @@
 
 GM TLS/SSL Based on Golang (基于国密算法的TLS/SSL代码库)
 
-版权所有 苏州同济区块链研究院有限公司(http://www.tj-fintech.com)
+版权所有 苏州同济区块链研究院有限公司(http://www.wutongchain.com)
 
 Copyright Suzhou Tongji Fintech Research Institute 2017 All Rights Reserved.
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,3 +16,4 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 See the License for the specific language governing permissions and limitations under the License.
 
+联系我们：tj@wutongchain.com
